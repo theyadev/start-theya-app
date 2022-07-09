@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "path": "./src/styles/globals.css",
+      "action": "replace"
+    },
+    {
+      "path": "./src/pages/index.tsx",
+      "action": "replace"
+    },
+    {
+      "path": "./postcss.config.js",
+      "action": "copy"
+    },
+    {
+      "path": "./tailwind.config.js",
+      "action": "copy"
+    }
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "tailwindcss": "^1.0.0",
+    "postcss": "^1.0.0"
+  }
+}
