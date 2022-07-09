@@ -1,154 +1,61 @@
 #! /usr/bin/env node
 
-import prompts from 'prompts';
 import fs from 'node:fs';
 import path from 'node:path';
 import minimist from 'minimist';
-import { red, reset, green, lightGreen, lightBlue } from 'kolorist';
+import { red } from 'kolorist';
+import { VariantConfig } from '../types';
+import prompt from '../prompt';
+import { copy } from '../utils';
 
 // Avoids autoconversion to number of the project name by defining that the args
 // non associated with an option ( _ ) needs to be parsed as a string. See #4606
 const argv = minimist(process.argv.slice(2), { string: ['_'] });
 const cwd = process.cwd();
 
-interface VariantFile {
-  path: string;
-  action: 'copy' | 'replace';
-}
+/**
+ * Copy every files from the variant into the new project
+ * @param variant name of the variant
+ * @param framework_dir path to the framework dir
+ * @param template_dir path to the template dir
+ * @param root path to the new project root
+ * @returns config of the variant if exists, null otherwise
+ */
+function importVariant(variant: string, framework_dir: string, template_dir: string, root: string) {
+  // Get the path to the variant dir
+  const variant_dir = path.resolve(framework_dir, variant);
 
-interface VariantConfig {
-  files: VariantFile[];
-  dependencies: { [key: string]: string };
-  devDependencies: { [key: string]: string };
-}
-
-interface Framework {
-  name: string;
-  variants: Variant[];
-  color: (str: string) => string;
-}
-
-interface Variant {
-  name: string;
-  color: (str: string) => string;
-}
-
-const FRAMEWORKS: Framework[] = [
-  {
-    name: 'next',
-    color: lightBlue,
-    variants: [
-      {
-        name: 'socketio',
-        color: green,
-      },
-      {
-        name: 'redis',
-        color: red,
-      },
-      {
-        name: 'mongodb',
-        color: lightGreen,
-      },
-      {
-        name: 'tailwindcss',
-        color: lightBlue,
-      },
-    ],
-  },
-  {
-    name: 'nuxt3',
-    color: lightGreen,
-    variants: [
-      {
-        name: 'socketio',
-        color: green,
-      },
-      {
-        name: 'redis',
-        color: red,
-      },
-    ],
-  },
-];
-
-type RenameFiles = { [key: string]: string };
-
-const renameFiles: RenameFiles = {
-  _gitignore: '.gitignore',
-};
-
-async function init() {
-  let targetDir = formatTargetDir(argv._[0]);
-
-  const defaultTargetDir = 'test-project';
-
-  const result = await prompts(
-    [
-      {
-        type: targetDir ? null : 'text',
-        name: 'projectName',
-        message: reset('Project name:'),
-        initial: defaultTargetDir,
-        onState: (state) => {
-          targetDir = formatTargetDir(state.value) || defaultTargetDir;
-        },
-        validate: (dir) =>
-          isValidPackageName(dir) || 'Name must be a valid npm package name, (allowed characters: a-z 0-9 - _ ~)',
-      },
-      {
-        type: 'select',
-        name: 'framework',
-        message: reset('Select a framework:'),
-        initial: 0,
-        choices: FRAMEWORKS.map((f) => {
-          const frameworkColor = f.color;
-          return {
-            title: frameworkColor(f.name),
-            value: f,
-          };
-        }),
-      },
-      {
-        type: (f: Framework) => (f && f.variants ? 'multiselect' : null),
-        name: 'variants',
-        message: reset('Select a variant:'),
-        choices: (f: Framework) =>
-          f.variants.map((variant) => {
-            const variantColor = variant.color;
-            return {
-              title: variantColor(variant.name),
-              value: variant.name,
-            };
-          }),
-      },
-    ],
-    {
-      onCancel: () => {
-        throw new Error(red('✖') + ' Operation cancelled');
-      },
-    },
-  ).catch((err) => {
-    console.error(red('✖') + ' ' + err.message);
-    process.exit(1);
-  });
-
-  const { framework, variants }: { framework: Framework; variants: string[] } = result;
-
-  if (variants.length === 0) {
-    console.error(red('✖') + ' You must select at least one variant');
-    process.exit(1);
+  // If the path doesn't exist, return null
+  if (!fs.existsSync(variant_dir)) {
+    console.error(red('✖') + ` Variant ${variant} not implemented (yet)`);
+    return null;
   }
 
-  const frameworkDir = path.resolve(__dirname, '../../templates/', framework.name);
-  const templateDir = path.resolve(frameworkDir, 'vanilla');
+  // Get the config file of the variant
+  const config: VariantConfig = JSON.parse(fs.readFileSync(path.join(variant_dir, 'config.json'), 'utf8'));
 
-  if (!fs.existsSync(templateDir)) {
+  // Copy every files from the variant into the new project
+  for (const file of config.files) {
+    const filePath = path.resolve(variant_dir, file.path);
+    
+    copy(filePath, root);
+  }
+
+  return config;
+}
+
+async function init() {
+  const { target_dir, framework, variants } = await prompt(argv._[0]);
+
+  const framework_dir = path.resolve(__dirname, '../../templates/', framework.name);
+  const template_dir = path.resolve(framework_dir, 'vanilla');
+
+  if (!fs.existsSync(template_dir)) {
     console.error(red('✖') + ' Framework not implemented (yet)');
     process.exit(1);
   }
 
-  const root = path.join(cwd, targetDir!);
+  const root = path.join(cwd, target_dir!);
 
   if (!fs.existsSync(root)) {
     fs.mkdirSync(root, { recursive: true });
@@ -156,49 +63,27 @@ async function init() {
 
   console.log(`\nScaffolding project in ${root}...`);
 
-  const write = (file: string, content?: any) => {
-    const targetPath = renameFiles[file] ? path.join(root, renameFiles[file]) : path.join(root, file);
-    if (content) {
-      fs.writeFileSync(targetPath, content);
-    } else {
-      copy(path.join(templateDir, file), targetPath);
-    }
-  };
-
-  const files = fs.readdirSync(templateDir);
+  const files = fs.readdirSync(template_dir);
 
   for (const file of files.filter((f) => f !== 'package.json')) {
-    write(file);
+    copy(path.resolve(template_dir, file), root);
   }
 
-  const packageJson = JSON.parse(fs.readFileSync(path.join(templateDir, 'package.json'), 'utf8'));
+  // Get the package json of the template
+  const package_json = JSON.parse(fs.readFileSync(path.join(template_dir, 'package.json'), 'utf8'));
 
+  // Add every files of the variants in the project
+  // and update the package json with the new dependencies
   for (const variant of variants) {
-    const variantDir = path.resolve(frameworkDir, variant);
+    const config = importVariant(variant, framework_dir, template_dir, root);
 
-    if (!fs.existsSync(variantDir)) {
-      console.error(red('✖') + ` Variant ${variant} not implemented (yet)`);
-      continue;
-    }
+    if (!config) continue;
 
-    const config: VariantConfig = JSON.parse(fs.readFileSync(path.join(variantDir, 'config.json'), 'utf8'));
-
-    for (const file of config.files) {
-      const filePath = path.resolve(variantDir, file.path);
-
-      if (file.action === 'copy') {
-        copy(filePath, path.join(root, file.path));
-      } else if (file.action === 'replace') {
-        const content = fs.readFileSync(filePath, 'utf8');
-        fs.writeFileSync(path.join(root, file.path), content);
-      }
-
-    }
-    packageJson.dependencies = { ...packageJson.dependencies, ...config.dependencies };
-    packageJson.devDependencies = { ...packageJson.devDependencies, ...config.devDependencies };
+    package_json.dependencies = { ...package_json.dependencies, ...config.dependencies };
+    package_json.devDependencies = { ...package_json.devDependencies, ...config.devDependencies };
   }
 
-  write('package.json', JSON.stringify(packageJson, null, 2));
+  fs.writeFileSync(path.resolve(root, 'package.json'), JSON.stringify(package_json, null, 2));
 
   console.log(`\nDone. Now run:\n`);
   console.log(`  cd ${path.relative(cwd, root)}`);
@@ -207,30 +92,4 @@ async function init() {
   console.log();
 }
 
-function copy(src: string, dest: string) {
-  const stat = fs.statSync(src);
-  if (stat.isDirectory()) {
-    copyDir(src, dest);
-  } else {
-    fs.copyFileSync(src, dest);
-  }
-}
-
-function copyDir(srcDir: string, destDir: string) {
-  fs.mkdirSync(destDir, { recursive: true });
-  for (const file of fs.readdirSync(srcDir)) {
-    const srcFile = path.resolve(srcDir, file);
-    const destFile = path.resolve(destDir, file);
-    copy(srcFile, destFile);
-  }
-}
-
-function formatTargetDir(targetDir?: string) {
-  return targetDir?.trim().replace(/\/+$/g, '');
-}
-
-function isValidPackageName(projectName: string) {
-  return /^(?:@[a-z0-9-*~][a-z0-9-*._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(projectName);
-}
-
-init().catch((e) => console.error);
+init().catch(console.error);
