@@ -9,7 +9,7 @@ import prompt from '../prompt';
 import { copy } from '../utils';
 
 // Avoids autoconversion to number of the project name by defining that the args
-// non associated with an option ( _ ) needs to be parsed as a string. See #4606
+// non associated with an option ( _ ) needs to be parsed as a string
 const argv = minimist(process.argv.slice(2), { string: ['_'] });
 const cwd = process.cwd();
 
@@ -18,10 +18,10 @@ const cwd = process.cwd();
  * @param variant name of the variant
  * @param framework_dir path to the framework dir
  * @param template_dir path to the template dir
- * @param root path to the new project root
+ * @param project_dir path to the new project dir
  * @returns config of the variant if exists, null otherwise
  */
-function importVariant(variant: string, framework_dir: string, template_dir: string, root: string) {
+function importVariant(variant: string, framework_dir: string, template_dir: string, project_dir: string) {
   // Get the path to the variant dir
   const variant_dir = path.resolve(framework_dir, variant);
 
@@ -36,9 +36,10 @@ function importVariant(variant: string, framework_dir: string, template_dir: str
 
   // Copy every files from the variant into the new project
   for (const file of config.files) {
-    const filePath = path.resolve(variant_dir, file.path);
-    
-    copy(filePath, root);
+    const file_path = path.resolve(variant_dir, file.path);
+    const output_path = path.resolve(project_dir, file.path);
+
+    copy(file_path, output_path);
   }
 
   return config;
@@ -47,7 +48,10 @@ function importVariant(variant: string, framework_dir: string, template_dir: str
 async function init() {
   const { target_dir, framework, variants } = await prompt(argv._[0]);
 
+  // Defines path to the frameworks templates (located in /templates)
   const framework_dir = path.resolve(__dirname, '../../templates/', framework.name);
+
+  // Defines path to the default variant
   const template_dir = path.resolve(framework_dir, 'vanilla');
 
   if (!fs.existsSync(template_dir)) {
@@ -55,18 +59,24 @@ async function init() {
     process.exit(1);
   }
 
-  const root = path.join(cwd, target_dir!);
+  // Defines path to the new created project
+  const project_dir = path.join(cwd, target_dir!);
 
-  if (!fs.existsSync(root)) {
-    fs.mkdirSync(root, { recursive: true });
+  // If path doesn't exist, creates it
+  if (!fs.existsSync(project_dir)) {
+    fs.mkdirSync(project_dir, { recursive: true });
   }
 
-  console.log(`\nScaffolding project in ${root}...`);
+  console.log(`\nScaffolding project in ${project_dir}...`);
 
+  // Copy every files from main variant in new project
   const files = fs.readdirSync(template_dir);
 
   for (const file of files.filter((f) => f !== 'package.json')) {
-    copy(path.resolve(template_dir, file), root);
+    const file_path = path.join(template_dir, file);
+    const output_path = path.join(project_dir, file);
+
+    copy(file_path, output_path);
   }
 
   // Get the package json of the template
@@ -75,7 +85,7 @@ async function init() {
   // Add every files of the variants in the project
   // and update the package json with the new dependencies
   for (const variant of variants) {
-    const config = importVariant(variant, framework_dir, template_dir, root);
+    const config = importVariant(variant, framework_dir, template_dir, project_dir);
 
     if (!config) continue;
 
@@ -83,10 +93,11 @@ async function init() {
     package_json.devDependencies = { ...package_json.devDependencies, ...config.devDependencies };
   }
 
-  fs.writeFileSync(path.resolve(root, 'package.json'), JSON.stringify(package_json, null, 2));
+  // Write the package.json in the new project
+  fs.writeFileSync(path.resolve(project_dir, 'package.json'), JSON.stringify(package_json, null, 2));
 
   console.log(`\nDone. Now run:\n`);
-  console.log(`  cd ${path.relative(cwd, root)}`);
+  console.log(`  cd ${path.relative(cwd, project_dir)}`);
   console.log(`  npm install`);
   console.log(`  npm run dev`);
   console.log();

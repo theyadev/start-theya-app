@@ -3,8 +3,12 @@ import { red, reset, green, lightGreen, lightBlue } from 'kolorist';
 import { isValidPackageName } from './utils';
 import { Framework } from './types';
 import { FRAMEWORKS } from './config';
-
-export default async function (target_dir?: string) {
+/**
+ * Makes the prompt to get the project name, the framework, and the choosen variants
+ * @param target_dir the name of the project
+ * @returns the project name, the framework, and the choosen variants
+ */
+export default async function prompt(target_dir?: string) {
   const default_target_dir = 'test-project';
 
   const result: { projectName: string; framework: Framework; variants: string[] } = await prompts(
