@@ -167,9 +167,11 @@ async function init() {
 
   const files = fs.readdirSync(templateDir);
 
-  for (const file of files) {
+  for (const file of files.filter((f) => f !== 'package.json')) {
     write(file);
   }
+
+  const packageJson = JSON.parse(fs.readFileSync(path.join(templateDir, 'package.json'), 'utf8'));
 
   for (const variant of variants) {
     const variantDir = path.resolve(frameworkDir, variant);
@@ -190,8 +192,13 @@ async function init() {
         const content = fs.readFileSync(filePath, 'utf8');
         fs.writeFileSync(path.join(root, file.path), content);
       }
+
     }
+    packageJson.dependencies = { ...packageJson.dependencies, ...config.dependencies };
+    packageJson.devDependencies = { ...packageJson.devDependencies, ...config.devDependencies };
   }
+
+  write('package.json', JSON.stringify(packageJson, null, 2));
 
   console.log(`\nDone. Now run:\n`);
   console.log(`  cd ${path.relative(cwd, root)}`);
