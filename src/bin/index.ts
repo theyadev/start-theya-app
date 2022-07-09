@@ -2,7 +2,6 @@
 
 import prompts from 'prompts';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import minimist from 'minimist';
 import { red, reset, green, lightGreen, lightBlue } from 'kolorist';
@@ -101,21 +100,21 @@ async function init() {
         name: 'framework',
         message: reset('Select a framework:'),
         initial: 0,
-        choices: FRAMEWORKS.map((framework) => {
-          const frameworkColor = framework.color;
+        choices: FRAMEWORKS.map((f) => {
+          const frameworkColor = f.color;
           return {
-            title: frameworkColor(framework.name),
-            value: framework,
+            title: frameworkColor(f.name),
+            value: f,
           };
         }),
       },
       {
-        type: (framework: Framework) => (framework && framework.variants ? 'multiselect' : null),
+        type: (f: Framework) => (f && f.variants ? 'multiselect' : null),
         name: 'variants',
         message: reset('Select a variant:'),
         // @ts-ignore
-        choices: (framework: Framework) =>
-          framework.variants.map((variant) => {
+        choices: (f: Framework) =>
+          f.variants.map((variant) => {
             const variantColor = variant.color;
             return {
               title: variantColor(variant.name),
