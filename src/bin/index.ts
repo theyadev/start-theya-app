@@ -73,6 +73,7 @@ const FRAMEWORKS: Framework[] = [
 ];
 
 type RenameFiles = { [key: string]: string };
+
 const renameFiles: RenameFiles = {
   _gitignore: '.gitignore',
 };
@@ -112,7 +113,6 @@ async function init() {
         type: (f: Framework) => (f && f.variants ? 'multiselect' : null),
         name: 'variants',
         message: reset('Select a variant:'),
-        // @ts-ignore
         choices: (f: Framework) =>
           f.variants.map((variant) => {
             const variantColor = variant.color;
