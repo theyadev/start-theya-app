@@ -1,6 +1,6 @@
 {
   "name": "start-theya-app",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "lib/bin/index.js",
   "files": [
@@ -15,7 +15,7 @@
     "url": "git+https://github.com/theyadev/start-theya-app.git"
   },
   "scripts": {
-    "dev": "npm run build && node lib/bin/index.js",
+    "dev": "npm run build && node lib/bin/index.js test-app",
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
