@@ -8,7 +8,11 @@
     "templates/**/*"
   ],
   "bin": {
-    "theya-next-app": "lib/bin/index.js"
+    "start-theya-app": "lib/bin/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theyadev/start-theya-app.git"
   },
   "scripts": {
     "dev": "npm run build && node lib/bin/index.js",
