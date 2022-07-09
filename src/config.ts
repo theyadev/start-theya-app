@@ -14,7 +14,7 @@ export const FRAMEWORKS = [
         color: red,
       },
       {
-        name: 'mongodb',
+        name: 'mongoose',
         color: lightGreen,
       },
       {

@@ -1,25 +1,8 @@
 {
-  "files": [
-    {
-      "path": "./src/styles/globals.css"
-      
-    },
-    {
-      "path": "./src/pages/index.tsx"
-      
-    },
-    {
-      "path": "./postcss.config.js"
-      
-    },
-    {
-      "path": "./tailwind.config.js"
-      
-    }
-  ],
   "dependencies": {},
   "devDependencies": {
     "tailwindcss": "^1.0.0",
     "postcss": "^1.0.0"
-  }
+  },
+  "environnement": []
 }
