@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "mongoose": "^6.4.1"
+  },
+  "devDependencies": {},
+  "environnement": [
+    {
+      "name": "MONGODB_URI",
+      "value": "mongodb+srv://<user>:<pass>@<host>/?retryWrites=true&w=majority"
+    }
+  ]
+}

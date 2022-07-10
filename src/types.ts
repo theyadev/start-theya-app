@@ -1,11 +1,12 @@
-export interface VariantFile {
-  path: string;
+interface VariantEnvironnement {
+  name: string;
+  value: string;
 }
 
 export interface VariantConfig {
-  files: VariantFile[];
   dependencies: { [key: string]: string };
   devDependencies: { [key: string]: string };
+  environnement: VariantEnvironnement[];
 }
 
 export interface Framework {

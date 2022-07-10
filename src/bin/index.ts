@@ -33,11 +33,12 @@ function importVariant(variant: string, framework_dir: string, template_dir: str
 
   // Get the config file of the variant
   const config: VariantConfig = JSON.parse(fs.readFileSync(path.join(variant_dir, 'config.json'), 'utf8'));
+  const files = fs.readdirSync(variant_dir);
 
   // Copy every files from the variant into the new project
-  for (const file of config.files) {
-    const file_path = path.resolve(variant_dir, file.path);
-    const output_path = path.resolve(project_dir, file.path);
+  for (const file of files.filter((f) => f !== 'config.json')) {
+    const file_path = path.resolve(variant_dir, file);
+    const output_path = path.resolve(project_dir, file);
 
     copy(file_path, output_path);
   }
@@ -81,7 +82,7 @@ async function init() {
 
   // Get the package json of the template
   const package_json = JSON.parse(fs.readFileSync(path.join(template_dir, 'package.json'), 'utf8'));
-
+  let environnement: string[] = [];
   // Add every files of the variants in the project
   // and update the package json with the new dependencies
   for (const variant of variants) {
@@ -91,10 +92,14 @@ async function init() {
 
     package_json.dependencies = { ...package_json.dependencies, ...config.dependencies };
     package_json.devDependencies = { ...package_json.devDependencies, ...config.devDependencies };
+    environnement = [...environnement, ...config.environnement.map((e) => `${e.name}=${e.value}`)];
   }
 
   // Write the package.json in the new project
   fs.writeFileSync(path.resolve(project_dir, 'package.json'), JSON.stringify(package_json, null, 2));
+
+  // Write the .env file in the new project
+  fs.writeFileSync(path.resolve(project_dir, '.env.local'), environnement.join('\n'));
 
   console.log(`\nDone. Now run:\n`);
   console.log(`  cd ${path.relative(cwd, project_dir)}`);
